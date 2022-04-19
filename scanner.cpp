@@ -9,6 +9,9 @@
 // fib(40)
 
 #include <string>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 
 enum Token {
     tok_eof =   -1,
@@ -50,9 +53,19 @@ bool IsAlNum(char c)
     return IsAlpha(c) || IsNum(c);
 }
 
+void Abort(const char* fmt, ...)
+{
+    va_list argptr;
+    va_start(argptr, fmt);
+    vfprintf(stderr, fmt, argptr);
+    va_end(argptr);
+
+    exit(1);
+}
+
 static int gettok()
 {
-    static char LastChar = ' ';
+    static int LastChar = ' ';
     IdentifierStr.clear();
 
     while (IsSpace(LastChar))
@@ -74,24 +87,39 @@ static int gettok()
     }
     else if (IsNum(LastChar) || LastChar == '.')    // Number: [0-9]*[.]?[0-9]*
     {
-        IdentifierStr += LastChar;
-        if (LastChar == '.')    // start with . 
-        {
-            while (IsNum(LastChar = getchar()))
-                IdentifierStr += LastChar;
-        }
-        else
-        {
-            // start with 0
-            if (LastChar == '0')
-            {
-                // must input .
-                LastChar = getchar();
-                if (LastChar != '.')
-                {
-                    printf("")
-                }
-            }
-        }
+        std::string str_val;
+        str_val += LastChar;
+
+        while (IsNum(LastChar = getchar()) || LastChar == '.')
+                str_val += LastChar;
+        NumVal = std::stod(str_val);
+        return tok_number;
     }
+    else if (LastChar != EOF)
+    {
+        IdentifierStr += LastChar;
+        LastChar = getchar();
+        return tok_identifier;
+    }
+    else
+    {
+        return tok_eof;
+    }
+}
+
+int main()
+{
+    int tok;
+    while (tok_eof != (tok = gettok()))
+    {
+        if (tok == tok_def)
+            printf("tok_def: %s\n", IdentifierStr.c_str());
+        else if (tok == tok_extern)
+            printf("tok_extern: %s\n", IdentifierStr.c_str());
+        else if (tok == tok_identifier)
+            printf("tok_identifier: %s\n", IdentifierStr.c_str());
+        else if (tok == tok_number)
+            printf("tok_number: %f\n", NumVal);
+    }
+    return 0;
 }
