@@ -30,7 +30,7 @@ static double NumVal;
 
 bool IsSpace(char c)
 {
-    return (c == ' ');
+    return (c == ' ' || c == '\t');
 }
 
 // Recognize an Alpha Character
@@ -95,6 +95,17 @@ static int gettok()
         NumVal = std::stod(str_val);
         return tok_number;
     }
+    else if (LastChar == '#')
+    {
+        // Comment
+        while ((LastChar = getchar()) != '\n' && LastChar != '\r');
+        return gettok();
+    }
+    else if (LastChar == '\n' || LastChar == '\r')
+    {
+        while ((LastChar = getchar()) == '\n' || LastChar == '\r');
+        return gettok();
+    }
     else if (LastChar != EOF)
     {
         IdentifierStr += LastChar;
@@ -121,5 +132,7 @@ int main()
         else if (tok == tok_number)
             printf("tok_number: %f\n", NumVal);
     }
+    printf("tok_eof\n");
+
     return 0;
 }
