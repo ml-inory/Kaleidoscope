@@ -1,4 +1,5 @@
 #include <string>
+#include <memory>
 
 class ExprAST
 {
@@ -6,22 +7,27 @@ public:
     virtual ~ExprAST() {}
 };
 
+// 数值
 class NumberExprAST : public ExprAST
 {
 public:
-    NumberExprAST(double val): m_val(val)
-    {}
+    NumberExprAST(double Val): Val(Val) {}
 
-private:
-    double m_val;
+    double Val;
 };
 
+// 变量
 class VariableExprAST : public ExprAST
 {
 public:
-    VariableExprAST(const std::string& name): m_name(name)
-    {}
+    VariableExprAST(const std::string& Name): Name(Name) {}
 
-private:
-    std::string m_name;
+    std::string Name;
+};
+
+// 二目运算符
+class BinaryExprAST : public ExprAST
+{
+public:
+    BinaryExprAST(char Op, std::unique_ptr<ExprAST> )
 };
