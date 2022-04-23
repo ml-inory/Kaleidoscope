@@ -1,14 +1,11 @@
-#include "ast.hpp"
-#include "scanner.h"
-
 #pragma once
 
-// static int CurTok;
+static int CurTok;
 
-// static int getNextToken();
+int getNextToken();
 
-// static std::unique_ptr<ExprAST> LogError(const char* fmt, ...);
+void HandleExtern();
 
-// static std::unique_ptr<PrototypeExprAST> LogErrorP(const char* fmt, ...);
+void HandleDefinition();
 
-// static std::unique_ptr<NumberExprAST> ParseNumberAST();
+void HandleExpression();

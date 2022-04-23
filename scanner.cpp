@@ -9,9 +9,6 @@
 // fib(40)
 #include "scanner.h"
 
-std::string IdentifierStr;   // Filled in if tok_identifier
-double NumVal;
-
 bool IsSpace(char c)
 {
     return (c == ' ' || c == '\t');
@@ -47,7 +44,7 @@ void Abort(const char* fmt, ...)
     exit(1);
 }
 
-static int gettok()
+int gettok()
 {
     static int LastChar = ' ';
     IdentifierStr.clear();
