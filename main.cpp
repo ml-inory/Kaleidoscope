@@ -9,6 +9,7 @@ static void MainLoop()
     while (1)
     {
         fprintf(stderr, "Kal > ");
+        printf("CurTok: %d\n", CurTok);
         switch (CurTok)
         {
         case tok_eof:

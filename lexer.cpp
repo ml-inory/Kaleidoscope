@@ -28,6 +28,8 @@ static std::unique_ptr<ExprAST> LogError(const char* fmt, ...)
     fprintf(stderr, "\n");
     va_end(argptr);
 
+    exit(1);
+
     return nullptr;
 }
 
@@ -39,6 +41,8 @@ static std::unique_ptr<PrototypeExprAST> LogErrorP(const char* fmt, ...)
     vfprintf(stderr, fmt, argptr);
     fprintf(stderr, "\n");
     va_end(argptr);
+
+    exit(1);
 
     return nullptr;
 }
@@ -147,7 +151,43 @@ static int GetOpPrecedence()
     return -1;
 }
 
-static std::unique_ptr<ExprAST> ParsePrimary();
+// parenexpr ::= ( expression )
+static std::unique_ptr<ExprAST> ParseParenAST()
+{
+    getNextToken();
+    auto V = ParseExpression();
+    if (!V)
+        return nullptr;
+
+    if (CurTok != ')')
+        return LogError("expected ')'");
+    getNextToken();
+
+    return std::move(V);
+}
+
+static std::unique_ptr<ExprAST> ParsePrimary()
+{
+    // printf("CurTok: %d\n", CurTok);
+    switch (CurTok)
+    {
+    case tok_number:
+    {
+        return ParseNumberAST();
+    }
+    case tok_identifier:
+    {
+        return ParseIdentifierAST();
+    }
+    case '(':
+    {
+        return ParseParenAST();
+    }
+    default:
+        return LogError("expected primary expression");
+        
+    }
+}
 
 // binop ::= + num/var
 static std::unique_ptr<ExprAST> ParseBinopRHS(int OpPrec, std::unique_ptr<ExprAST> LHS)
@@ -179,31 +219,6 @@ static std::unique_ptr<ExprAST> ParseBinopRHS(int OpPrec, std::unique_ptr<ExprAS
             
         LHS = std::make_unique<BinaryExprAST>(Op, std::move(LHS), std::move(RHS));
     }
-
-}
-
-static std::unique_ptr<ExprAST> ParseParenAST();
-
-static std::unique_ptr<ExprAST> ParsePrimary()
-{
-    switch (CurTok)
-    {
-    case tok_number:
-    {
-        return ParseNumberAST();
-    }
-    case tok_identifier:
-    {
-        return ParseIdentifierAST();
-    }
-    case '(':
-    {
-        return ParseParenAST();
-    }
-    default:
-        return LogError("expected primary expression");
-        
-    }
 }
 
 // expression
@@ -211,24 +226,9 @@ static std::unique_ptr<ExprAST> ParseExpression()
 {
     auto LHS = ParsePrimary();
     if (!LHS)
-        return nullptr;
+        return LogError("parse primary failed!");
 
     return ParseBinopRHS(0, std::move(LHS));
-}
-
-// parenexpr ::= ( expression )
-static std::unique_ptr<ExprAST> ParseParenAST()
-{
-    getNextToken();
-    auto V = ParseExpression();
-    if (!V)
-        return nullptr;
-
-    if (CurTok != ')')
-        return LogError("expected ')'");
-    getNextToken();
-
-    return std::move(V);
 }
 
 // 零元函数包住整个代码
