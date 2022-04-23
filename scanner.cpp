@@ -7,26 +7,10 @@
 
 // # This expression will compute the 40th number.
 // fib(40)
+#include "scanner.h"
 
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-
-enum Token {
-    tok_eof =   -1,
-
-    // commands
-    tok_def =   -2,
-    tok_extern  =   -3,
-
-    // primary
-    tok_identifier  =   -4,
-    tok_number  =   -5,
-};
-
-static std::string IdentifierStr;   // Filled in if tok_identifier
-static double NumVal;
+std::string IdentifierStr;   // Filled in if tok_identifier
+double NumVal;
 
 bool IsSpace(char c)
 {
@@ -108,9 +92,9 @@ static int gettok()
     }
     else if (LastChar != EOF)
     {
-        IdentifierStr += LastChar;
+        int ThisChar = LastChar;
         LastChar = getchar();
-        return tok_identifier;
+        return ThisChar;
     }
     else
     {
@@ -118,21 +102,21 @@ static int gettok()
     }
 }
 
-int main()
-{
-    int tok;
-    while (tok_eof != (tok = gettok()))
-    {
-        if (tok == tok_def)
-            printf("tok_def: %s\n", IdentifierStr.c_str());
-        else if (tok == tok_extern)
-            printf("tok_extern: %s\n", IdentifierStr.c_str());
-        else if (tok == tok_identifier)
-            printf("tok_identifier: %s\n", IdentifierStr.c_str());
-        else if (tok == tok_number)
-            printf("tok_number: %f\n", NumVal);
-    }
-    printf("tok_eof\n");
+// int main()
+// {
+//     int tok;
+//     while (tok_eof != (tok = gettok()))
+//     {
+//         if (tok == tok_def)
+//             printf("tok_def: %s\n", IdentifierStr.c_str());
+//         else if (tok == tok_extern)
+//             printf("tok_extern: %s\n", IdentifierStr.c_str());
+//         else if (tok == tok_identifier)
+//             printf("tok_identifier: %s\n", IdentifierStr.c_str());
+//         else if (tok == tok_number)
+//             printf("tok_number: %f\n", NumVal);
+//     }
+//     printf("tok_eof\n");
 
-    return 0;
-}
+//     return 0;
+// }

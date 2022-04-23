@@ -2,6 +2,8 @@
 #include <memory>
 #include <vector>
 
+#pragma once
+
 class ExprAST
 {
 public:
