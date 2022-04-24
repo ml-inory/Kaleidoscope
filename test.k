@@ -1,3 +1,3 @@
 # test program
-def main():
+def main()
     foo = 12.34
