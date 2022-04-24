@@ -1,6 +1,6 @@
 #pragma once
 
-static int CurTok;
+extern int CurTok;
 
 int getNextToken();
 

@@ -1,11 +1,8 @@
 #include <string>
 #include <memory>
-<<<<<<< HEAD
-=======
 #include <vector>
 
 #pragma once
->>>>>>> 8896d9c5fffd6cefd7511a0e578d35eed69499e8
 
 class ExprAST
 {
@@ -38,15 +35,6 @@ class BinaryExprAST : public ExprAST
     std::unique_ptr<ExprAST> LHS, RHS;
 
 public:
-<<<<<<< HEAD
-    NumberExprAST(double Val): Val(Val) {}
-
-    double Val;
-};
-
-// 变量
-class VariableExprAST : public ExprAST
-=======
     BinaryExprAST(char Op, std::unique_ptr<ExprAST> LHS, std::unique_ptr<ExprAST> RHS): Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS))
     {}
 };
@@ -66,24 +54,11 @@ public:
 
 // 函数原型
 class PrototypeExprAST : public ExprAST
->>>>>>> 8896d9c5fffd6cefd7511a0e578d35eed69499e8
 {
     std::string Name;
     std::vector<std::string> Args;
 
 public:
-<<<<<<< HEAD
-    VariableExprAST(const std::string& Name): Name(Name) {}
-
-    std::string Name;
-};
-
-// 二目运算符
-class BinaryExprAST : public ExprAST
-{
-public:
-    BinaryExprAST(char Op, std::unique_ptr<ExprAST> )
-=======
     PrototypeExprAST(const std::string& Name, const std::vector<std::string>& Args):
     Name(Name),
     Args(std::move(Args))
@@ -101,5 +76,4 @@ public:
     Proto(std::move(Proto)),
     Body(std::move(Body))
     {}
->>>>>>> 8896d9c5fffd6cefd7511a0e578d35eed69499e8
 };

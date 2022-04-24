@@ -3,6 +3,8 @@
 #include "lexer.hpp"
 #include <map>
 
+int CurTok;
+
 // 运算符优先级
 static std::map<char, int>  BinopPrecedence {
     {'<', 10},
@@ -16,7 +18,9 @@ static std::map<char, int>  BinopPrecedence {
 
 int getNextToken()
 {
-    return (CurTok = gettok());
+    CurTok = gettok();
+    printf("CurTok: %d\n", CurTok);
+    return CurTok;
 }
 
 static std::unique_ptr<ExprAST> LogError(const char* fmt, ...)
@@ -192,15 +196,18 @@ static std::unique_ptr<ExprAST> ParsePrimary()
 // binop ::= + num/var
 static std::unique_ptr<ExprAST> ParseBinopRHS(int OpPrec, std::unique_ptr<ExprAST> LHS)
 {
+    printf("begin\n");
     while (1)
     {
-        getNextToken();
+        printf("token: %d\n", CurTok);
 
         int CurOpPrec = GetOpPrecedence();
+        printf("CurOpPrec: %d    OpPrec: %d\n", CurOpPrec, OpPrec);
         if (CurOpPrec < OpPrec)
             return std::move(LHS);
 
         char Op = CurTok;
+        printf("op: %d %c\n", Op, Op);
         if (BinopPrecedence.find(Op) == BinopPrecedence.end())
             return LogError("Unsupported binary op: %c", Op);
 
@@ -210,6 +217,7 @@ static std::unique_ptr<ExprAST> ParseBinopRHS(int OpPrec, std::unique_ptr<ExprAS
             return LogError("expected rhs for binop");
 
         int NextOpPrec = GetOpPrecedence();
+        printf("CurOpPrec: %d    NextOpPrec: %d\n", CurOpPrec, NextOpPrec);
         if (NextOpPrec > CurOpPrec)
         {
             RHS = ParseBinopRHS(CurOpPrec + 1, std::move(RHS));
@@ -219,6 +227,7 @@ static std::unique_ptr<ExprAST> ParseBinopRHS(int OpPrec, std::unique_ptr<ExprAS
             
         LHS = std::make_unique<BinaryExprAST>(Op, std::move(LHS), std::move(RHS));
     }
+    printf("end\n");
 }
 
 // expression
@@ -228,22 +237,28 @@ static std::unique_ptr<ExprAST> ParseExpression()
     if (!LHS)
         return LogError("parse primary failed!");
 
+    printf("ParseBinopRHS\n");
     return ParseBinopRHS(0, std::move(LHS));
 }
 
 // 零元函数包住整个代码
 static std::unique_ptr<FunctionAST> ParseTopLevelAST()
 {
-    if (auto E = ParseExpression())
+    printf("ParseTopLevelAST\n");
+    auto E = ParseExpression();
+    if (E)
     {
+        printf("ParseExpression\n");
         auto Proto = std::make_unique<PrototypeExprAST>("", std::vector<std::string>{});
         return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
     }
+    printf("null\n");
     return nullptr;
 }
 
 void HandleExtern()
 {
+    printf("Parsing extern\n");
     if (!ParseExtern())
         fprintf(stderr, "Parse extern error\n");
     else
@@ -252,6 +267,7 @@ void HandleExtern()
 
 void HandleDefinition()
 {
+    printf("Parsing definition\n");
     if (!ParseDefAST())
         fprintf(stderr, "Parse definition error\n");
     else
@@ -260,6 +276,7 @@ void HandleDefinition()
 
 void HandleExpression()
 {
+    printf("Parsing expression\n");
     if (!ParseTopLevelAST())
         fprintf(stderr, "Parse expression error\n");
     else
