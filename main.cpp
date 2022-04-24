@@ -1,5 +1,5 @@
-#include "scanner.h"
-#include "lexer.hpp"
+#include "lexer.h"
+#include "parser.hpp"
 #include <stdio.h>
 
 static void MainLoop()

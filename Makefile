@@ -1,5 +1,5 @@
-kal : lexer.cpp scanner.cpp ast.hpp scanner.h
-	g++ -o kal main.cpp lexer.cpp scanner.cpp
+kal : parser.cpp ast.hpp lexer.h
+	g++ -o kal main.cpp parser.cpp lexer.cpp
 
 clean:
 	rm -vf kal

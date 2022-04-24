@@ -1,284 +1,119 @@
-#include "ast.hpp"
-#include "scanner.h"
-#include "lexer.hpp"
-#include <map>
+// # Compute the x'th fibonacci number.
+// def fib(x)
+//   if x < 3 then
+//     1
+//   else
+//     fib(x-1)+fib(x-2)
 
-int CurTok;
+// # This expression will compute the 40th number.
+// fib(40)
+#include "lexer.h"
 
-// 运算符优先级
-static std::map<char, int>  BinopPrecedence {
-    {'<', 10},
-    {'=', 10},
-    {'>', 10},
-    {'+', 20},
-    {'-', 20},
-    {'*', 30},
-    {'/', 30}
-};
-
-int getNextToken()
+bool IsSpace(char c)
 {
-    CurTok = gettok();
-    // printf("CurTok: %d\n", CurTok);
-    return CurTok;
+    return (c == ' ' || c == '\t');
 }
 
-static std::unique_ptr<ExprAST> LogError(const char* fmt, ...)
+// Recognize an Alpha Character
+bool IsAlpha(char c)
 {
-    va_list argptr;
-    va_start(argptr, fmt);
-    fprintf(stderr, "LogError: ");
-    vfprintf(stderr, fmt, argptr);
-    fprintf(stderr, "\n");
-    va_end(argptr);
-
-    exit(1);
-
-    return nullptr;
+    // [A .. Z]: 65 ~ 90
+    // [a .. z]: 97 ~ 122
+    return ((c >= 65 && c <= 90) || (c >= 97 && c <= 122));
 }
 
-static std::unique_ptr<PrototypeExprAST> LogErrorP(const char* fmt, ...)
+// Recognize a Decimal Digit
+bool IsNum(char c)
+{
+    // [0 .. 9]: 48 ~ 57
+    return (c >= 48 && c <= 57);
+}
+
+bool IsAlNum(char c)
+{
+    return IsAlpha(c) || IsNum(c);
+}
+
+void Abort(const char* fmt, ...)
 {
     va_list argptr;
     va_start(argptr, fmt);
-    fprintf(stderr, "LogErrorP: ");
     vfprintf(stderr, fmt, argptr);
-    fprintf(stderr, "\n");
     va_end(argptr);
 
     exit(1);
-
-    return nullptr;
 }
 
-// numberexpr ::= number
-static std::unique_ptr<ExprAST> ParseNumberAST()
+int gettok()
 {
-    auto Result = std::make_unique<NumberExprAST>(NumVal);
-    getNextToken();
-    return std::move(Result);
-}
+    static int LastChar = ' ';
+    IdentifierStr.clear();
 
-static std::unique_ptr<ExprAST> ParseExpression();
+    while (IsSpace(LastChar))
+        LastChar = getchar();
 
-// identifierexpr ::= identifier
-static std::unique_ptr<ExprAST> ParseIdentifierAST()
-{
-    std::string Name = IdentifierStr;
-
-    getNextToken();
-
-    if (CurTok != '(')
-        return std::make_unique<VariableExprAST>(Name);
-
-    getNextToken();
-    std::vector<std::unique_ptr<ExprAST>> Args;
-    if (CurTok != ')')
+    if (IsAlpha(LastChar) || LastChar == '_')  // Identifier: [a-zA-Z_][a-zA-Z0-9_]*
     {
-        while (1)
-        {
-            auto expr = ParseExpression();
-            if (expr == nullptr)
-                return LogError("argument %d for %s is NULL", Args.size() + 1, Name.c_str());
+        IdentifierStr += LastChar;
+        while (IsAlNum(LastChar = getchar()) || LastChar == '_')
+            IdentifierStr += LastChar;
 
-            Args.push_back(std::move(expr));
+        if (IdentifierStr == "def")
+            return tok_def;
 
-            getNextToken();
-            if (CurTok == ')')
-                break;
-            
-            if (CurTok != ',')
-                return LogError("expected ','");
-        }
+        if (IdentifierStr == "extern")
+            return tok_extern;
+
+        return tok_identifier;
     }
-
-    getNextToken();
-
-    return std::make_unique<CallExprAST>(Name, std::move(Args));
-}
-
-// prototype expr ::= extern FnName(ArgNames)
-static std::unique_ptr<PrototypeExprAST> ParsePrototypeAST()
-{
-    if (CurTok != tok_identifier)
-        return LogErrorP("expected identifier");
-
-    std::string Name = IdentifierStr;
-
-    getNextToken();
-    if (CurTok != '(')
-        return LogErrorP("expected '('");
-
-    getNextToken();
-    std::vector<std::string> Args;
-    if (CurTok != ')')
+    else if (IsNum(LastChar) || LastChar == '.')    // Number: [0-9]*[.]?[0-9]*
     {
-        while (getNextToken() == tok_identifier)
-        {
-            Args.push_back(IdentifierStr);
-        }
+        std::string str_val;
+        str_val += LastChar;
+
+        while (IsNum(LastChar = getchar()) || LastChar == '.')
+                str_val += LastChar;
+        NumVal = std::stod(str_val);
+        return tok_number;
     }
-
-    getNextToken();
-
-    return std::make_unique<PrototypeExprAST>(Name, std::move(Args));
-}
-
-static std::unique_ptr<PrototypeExprAST> ParseExtern()
-{
-    getNextToken();
-    return ParsePrototypeAST();
-}
-
-// function impl ::= def prototype expressions
-static std::unique_ptr<ExprAST> ParseDefAST()
-{
-    getNextToken();
-
-    std::unique_ptr<PrototypeExprAST> Prototype = ParsePrototypeAST();
-    if (!Prototype)
-        return LogError("expected prototype");
-
-    if (auto E = ParseExpression())
-        return std::make_unique<FunctionAST>(std::move(Prototype), std::move(E));
-    return nullptr;
-}
-
-static int GetOpPrecedence()
-{
-    if (!isascii(CurTok))
-        return -1;
-
-    if (BinopPrecedence.find(CurTok) != BinopPrecedence.end())
-        return BinopPrecedence[CurTok];
-
-    return -1;
-}
-
-// parenexpr ::= ( expression )
-static std::unique_ptr<ExprAST> ParseParenAST()
-{
-    getNextToken();
-    auto V = ParseExpression();
-    if (!V)
-        return nullptr;
-
-    if (CurTok != ')')
-        return LogError("expected ')'");
-    getNextToken();
-
-    return std::move(V);
-}
-
-static std::unique_ptr<ExprAST> ParsePrimary()
-{
-    // printf("CurTok: %d\n", CurTok);
-    switch (CurTok)
+    else if (LastChar == '#')
     {
-    case tok_number:
+        // Comment
+        while ((LastChar = getchar()) != '\n' && LastChar != '\r');
+        return gettok();
+    }
+    else if (LastChar == '\n' || LastChar == '\r')
     {
-        return ParseNumberAST();
+        while ((LastChar = getchar()) == '\n' || LastChar == '\r');
+        return gettok();
     }
-    case tok_identifier:
+    else if (LastChar != EOF)
     {
-        return ParseIdentifierAST();
+        int ThisChar = LastChar;
+        LastChar = getchar();
+        return ThisChar;
     }
-    case '(':
-    {
-        return ParseParenAST();
-    }
-    default:
-        return LogError("expected primary expression");
-        
-    }
-}
-
-// binop ::= + num/var
-static std::unique_ptr<ExprAST> ParseBinopRHS(int OpPrec, std::unique_ptr<ExprAST> LHS)
-{
-    // printf("begin\n");
-    while (1)
-    {
-        // printf("token: %d\n", CurTok);
-
-        int CurOpPrec = GetOpPrecedence();
-        // printf("CurOpPrec: %d    OpPrec: %d\n", CurOpPrec, OpPrec);
-        if (CurOpPrec < OpPrec)
-            return std::move(LHS);
-
-        char Op = CurTok;
-        // printf("op: %d %c\n", Op, Op);
-        if (BinopPrecedence.find(Op) == BinopPrecedence.end())
-            return LogError("Unsupported binary op: %c", Op);
-
-        getNextToken();
-        auto RHS = ParsePrimary();
-        if (!RHS)
-            return LogError("expected rhs for binop");
-
-        int NextOpPrec = GetOpPrecedence();
-        // printf("CurOpPrec: %d    NextOpPrec: %d\n", CurOpPrec, NextOpPrec);
-        if (NextOpPrec > CurOpPrec)
-        {
-            RHS = ParseBinopRHS(CurOpPrec + 1, std::move(RHS));
-            if (!RHS)
-                return nullptr;
-        }
-            
-        LHS = std::make_unique<BinaryExprAST>(Op, std::move(LHS), std::move(RHS));
-    }
-    // printf("end\n");
-}
-
-// expression
-static std::unique_ptr<ExprAST> ParseExpression()
-{
-    auto LHS = ParsePrimary();
-    if (!LHS)
-        return LogError("parse primary failed!");
-
-    // printf("ParseBinopRHS\n");
-    return ParseBinopRHS(0, std::move(LHS));
-}
-
-// 零元函数包住整个代码
-static std::unique_ptr<FunctionAST> ParseTopLevelAST()
-{
-    // printf("ParseTopLevelAST\n");
-    auto E = ParseExpression();
-    if (E)
-    {
-        // printf("ParseExpression\n");
-        auto Proto = std::make_unique<PrototypeExprAST>("", std::vector<std::string>{});
-        return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
-    }
-    // printf("null\n");
-    return nullptr;
-}
-
-void HandleExtern()
-{
-    // printf("Parsing extern\n");
-    if (!ParseExtern())
-        fprintf(stderr, "Parse extern error\n");
     else
-        fprintf(stderr, "Parsed an extern\n");
+    {
+        return tok_eof;
+    }
 }
 
-void HandleDefinition()
-{
-    // printf("Parsing definition\n");
-    if (!ParseDefAST())
-        fprintf(stderr, "Parse definition error\n");
-    else
-        fprintf(stderr, "Parsed an definition\n");
-}
+// int main()
+// {
+//     int tok;
+//     while (tok_eof != (tok = gettok()))
+//     {
+//         if (tok == tok_def)
+//             printf("tok_def: %s\n", IdentifierStr.c_str());
+//         else if (tok == tok_extern)
+//             printf("tok_extern: %s\n", IdentifierStr.c_str());
+//         else if (tok == tok_identifier)
+//             printf("tok_identifier: %s\n", IdentifierStr.c_str());
+//         else if (tok == tok_number)
+//             printf("tok_number: %f\n", NumVal);
+//     }
+//     printf("tok_eof\n");
 
-void HandleExpression()
-{
-    // printf("Parsing expression\n");
-    if (!ParseTopLevelAST())
-        fprintf(stderr, "Parse expression error\n");
-    else
-        fprintf(stderr, "Parsed an expression\n");
-}
+//     return 0;
+// }
