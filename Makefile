@@ -1,5 +1,5 @@
 kal : parser.cpp ast.hpp lexer.h
-	g++ -o kal main.cpp parser.cpp lexer.cpp
+	clang++ -g -O3 main.cpp parser.cpp lexer.cpp `llvm-config --cxxflags --ldflags --system-libs --libs core` -o kal
 
 clean:
 	rm -vf kal
